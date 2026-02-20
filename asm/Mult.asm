@@ -3,10 +3,10 @@
 // The algorithm is based on repetitive addition.
 
 // Store R0 in a
-@R0
-D=M
-@a
-M=D
+@R0 // A = R0
+D=M // M = Ram[R0]
+@a  // A = a (at 16th word from the beginning of RAM)
+M=D // ram[a] = ram[r0]
 // Store R1 in b
 @R1
 D=M
