@@ -1,0 +1,46 @@
+/**
+ * The complete address space of the Zap computer's memory,
+ * including RAM and memory-mapped I/O. 
+ * The chip facilitates read and write operations, as follows:
+ *     Read:  out(t) = Memory[address(t)](t)
+ *     Write: if load(t-1) then Memory[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by address. If load=1, the in value is loaded 
+ * into the memory location specified by address. This value becomes 
+ * available through the out output from the next time step onward.
+ * Address space rules:
+ * Only the upper 16K+8K+1 words of the Memory chip are used. 
+ * Access to address>0x6000 is invalid and reads 0. Access to any address
+ * in the range 0x4000-0x5FFF results in accessing the screen memory 
+ * map. Access to address 0x6000 results in accessing the keyboard 
+ * memory map. The behavior in these addresses is described in the Screen
+ * and Keyboard chip specifications.
+ Mem Spec:
+ Address Range	   Size	      Component
+ 0x0000 - 0x3FFF   16K words  RAM16K (main memory)
+ 0x4000 - 0x5FFF   8K words	  Screen memory map
+ 0x6000	           1 word	  Keyboard register
+
+ binary range detection using the top bits as a region selector to distinguish btw Ram vs memory mapped IO
+ */
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+	// Route load to the correct chip
+    DMux(in=load, sel=address[14], a=loadRAM, b=loadIO);
+    DMux(in=loadIO, sel=address[13], a=loadScreen, b=loadKbd);
+
+    // Sub chips
+    RAM16K(in=in, load=loadRAM, address=address[0..13], out=ramOut);
+    Screen(in=in, load=loadScreen, address=address[0..12], out=screenOut);
+    Keyboard(out=kbdOut);
+
+    // Select output based on address[13..14]
+    // 00 -> ram  
+    // 01 -> ram 
+    // 10 -> screen 
+    // 11 -> kbd
+    Mux4Way16(a=ramOut, b=ramOut, c=screenOut, d=kbdOut,sel=address[13..14], out=out);
+}

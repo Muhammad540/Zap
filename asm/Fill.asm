@@ -2,7 +2,7 @@
 @SCREEN
 D=A
 @PIXEL_IDX
-M=D
+M=Dz
 
 @KBD
 D=M
