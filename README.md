@@ -260,15 +260,15 @@ Five components wired together:
 
 ```mermaid
 flowchart TD
-    INST["instruction (16-bit)"] --> ISCINST{"Bit 15?\nA or C?"}
+    INST["instruction (16-bit)"] --> ISCINST{"Bit 15? A or C?"}
 
-    ISCINST -->|"0 = A-Instruction"| AREG["A Register\n← instruction value"]
-    ISCINST -->|"1 = C-Instruction"| DECODE["Route bits to\ncontrol signals"]
+    ISCINST -->|"0 = A-Instruction"| AREG["A Register ← instruction value"]
+    ISCINST -->|"1 = C-Instruction"| DECODE["Route bits to control signals"]
 
-    DECODE --> AMUX["Mux: A or Memory?\n(bit 12)"]
-    DECODE --> ALUCTL["ALU control\n(bits 11..6)"]
-    DECODE --> DEST["Destination\n(bits 5..3)"]
-    DECODE --> JUMP["Jump condition\n(bits 2..0)"]
+    DECODE --> AMUX["Mux: A or Memory? (bit 12)"]
+    DECODE --> ALUCTL["ALU control (bits 11..6)"]
+    DECODE --> DEST["Destination (bits 5..3)"]
+    DECODE --> JUMP["Jump condition (bits 2..0)"]
 
     DREG["D Register"] --> ALU["ALU"]
     AMUX --> ALU
@@ -364,7 +364,7 @@ flowchart LR
     ROM["ROM32K\n(Program)"] -->|"instruction (16)"| CPU["CPU"]
     CPU -->|"pc (15)"| ROM
 
-    CPU -->|"outM (16)"| MEM["Memory\n(RAM16K + Screen + Kbd)"]
+    CPU -->|"outM (16)"| MEM["Memory (RAM16K + Screen + Kbd)"]
     CPU -->|"writeM (1)"| MEM
     CPU -->|"addressM (15)"| MEM
     MEM -->|"inM (16)"| CPU
@@ -434,12 +434,12 @@ Steps 1–5 are combinational. Step 6 is sequential.
 
 ```mermaid
 flowchart LR
-    A["NAND"] --> B["Not, And\nOr, Xor"]
+    A["NAND"] --> B["Not, And, Or, Xor"]
     B --> C["Mux, DMux"]
-    C --> D["HalfAdder\nFullAdder\nAdd16"]
+    C --> D["HalfAdder, FullAdder, Add16"]
     D --> E["ALU"]
-    B --> F["DFF → Bit\n→ Register"]
-    F --> G["RAM8 → RAM64\n→ ... → RAM16K"]
+    B --> F["DFF → Bit → Register"]
+    F --> G["RAM8 → RAM64 → ... → RAM16K"]
     D --> H["Inc16 → PC"]
     E --> I["CPU"]
     G --> I
