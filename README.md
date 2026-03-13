@@ -186,7 +186,7 @@ flowchart TD
     NY -->|yes| YN["NOT(y)"] --> F
     NY -->|no| YP["y"] --> F
 
-    F -->|"f=1"| ADD["Add16(x, y)"] --> NO{"no?"}
+    F -->|"f=1"| ADD["Add16(x, y)"] --> NO{"NOT?"}
     F -->|"f=0"| AND["And16(x, y)"] --> NO
     NO -->|yes| OUT1["NOT(result)"] --> RESULT["out (16-bit)"]
     NO -->|no| OUT2["result"] --> RESULT
