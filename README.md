@@ -13,8 +13,6 @@
 9. [Timing Model](#timing-model)
 10. [Summary](#summary)
 
----
-
 ## What is ZAP?
 
 ZAP is a **16-bit computer** built entirely from scratch, starting from a primitive logic gates.
@@ -22,16 +20,14 @@ ZAP is a **16-bit computer** built entirely from scratch, starting from a primit
 **Specs:**
 - 16-bit data width
 - Harvard architecture (separate instruction and data memory)
-- Single-cycle execution: one instruction per clock tick
-- Two instruction formats: **A-instructions** (addresses/constants) and **C-instructions** (compute)
-- Two general-purpose registers (A and D), an ALU, and a Program Counter
-- Memory-mapped I/O (screen + keyboard)
-
----
+- Single cycle execution: one instruction per clock tick
+- Two instruction formats: **A-instructions** (addresses/variables) and **C-instructions** (compute)
+- Two general purpose registers (A and D), an ALU, and a Program Counter
+- Memory mapped I/O (screen + keyboard)
 
 ## Bottom Up
 
-Each component is built first and then integrated into a larger one. No component was used before being built.
+Each component is built first and then integrated into a larger one.
 
 ```mermaid
 flowchart LR
@@ -39,7 +35,7 @@ flowchart LR
     B --> C["Multiplexors\n& Demuxors"]
     C --> D["Adders"]
     D --> E["ALU"]
-    B --> F["DFF → Bit → Register"]
+    B --> F["Data Flip Flop → Bit → Register"]
     F --> G["RAM hierarchy"]
     E --> H["CPU"]
     G --> H
@@ -56,8 +52,6 @@ flowchart LR
     style I fill:#00bcd4,color:#fff,stroke:#0097a7
 ```
 
----
-
 ## Phase 1: Foundation Chips
 
 Everything in a digital system traces back to a small set of logic gates.
@@ -66,7 +60,7 @@ Everything in a digital system traces back to a small set of logic gates.
 
 I started with `Not`, `And`, `Or`, and `Xor` all implemented using NAND only. These four gates can express any Boolean function.
 
-I then made 16-bit bus versions: `Not16`, `And16`, `Or16`, and `Or8Way` (ORs 8 bits into one output, used later in the ALU for zero detection).
+I then made 16 bit bus versions: `Not16`, `And16`, `Or16`, and `Or8Way`.
 
 ### Layer 2: Multiplexors and Demultiplexors
 
@@ -82,7 +76,7 @@ A Mux selects between inputs based on a control signal. A DMux routes one input 
 | `DMux4Way` |
 | `DMux8Way` |
 
-Multi-way variants are built by cascading smaller ones. `Mux4Way16` is just two `Mux16` feeding into a third.
+Multi way variants are built by cascading smaller ones. `Mux4Way16` is just two `Mux16` feeding into a third.
 
 ### Layer 3: Arithmetic
 
@@ -93,9 +87,8 @@ Multi-way variants are built by cascading smaller ones. `Mux4Way16` is just two 
 | `Add16` |
 | `Inc16` |
 
-`Inc16` adds 1 to a 16-bit value, exactly what the Program Counter needs each cycle.
+`Inc16` adds 1 to a 16 bit value, exactly what the Program Counter needs each cycle.
 
----
 
 ## Phase 2: Instruction Set Architecture
 
@@ -135,8 +128,6 @@ Bit `[15] = 1` marks it as a C-instruction.
 
 **Orthogonality.** Destination and jump fields are independent. Any combination of write targets (A, D, Memory) and any combination of jump conditions can be expressed in a single instruction.
 
----
-
 ## Phase 3: The ALU
 
 ### The Problem
@@ -150,17 +141,34 @@ Instead, the ALU applies a fixed sequence of transformations to inputs `x` and `
 | Bit | Name | Effect |
 |-----|------|--------|
 | `zx` | Zero x | Replace x with 0 |
-| `nx` | Negate x | Bitwise-NOT x |
+| `nx` | Negate x | Bitwise NOT x |
 | `zy` | Zero y | Replace y with 0 |
-| `ny` | Negate y | Bitwise-NOT y |
+| `ny` | Negate y | Bitwise NOT y |
 | `f` | Function | 1 = Add, 0 = And |
-| `no` | Negate output | Bitwise-NOT the result |
+| `no` | Negate output | Bitwise NOT the result |
 
-Different combinations of these 6 bits produce **18 useful operations** from one datapath. A few examples:
+Different combinations of these 6 bits produce **18 useful operations** from one datapath.
 
-- **`x-y`**: `nx=1, f=1, no=1` — two's complement does the rest
-- **`0`**: `zx=1, zy=1, f=1` — 0 + 0
-- **`-1`**: `zx=1, nx=1, zy=1, f=1` — NOT(0) + 0 = 0xFFFF = -1
+| zx | nx | zy | ny | f | no | Output |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 |
+| 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| 1 | 1 | 1 | 0 | 1 | 0 | -1 |
+| 0 | 0 | 1 | 1 | 0 | 0 | x |
+| 1 | 1 | 0 | 0 | 0 | 0 | y |
+| 0 | 0 | 1 | 1 | 0 | 1 | NOT x |
+| 1 | 1 | 0 | 0 | 0 | 1 | NOT y |
+| 0 | 0 | 1 | 1 | 1 | 1 | -x |
+| 1 | 1 | 0 | 0 | 1 | 1 | -y |
+| 0 | 1 | 1 | 1 | 1 | 1 | x+1 |
+| 1 | 1 | 0 | 1 | 1 | 1 | y+1 |
+| 0 | 0 | 1 | 1 | 1 | 0 | x-1 |
+| 1 | 1 | 0 | 0 | 1 | 0 | y-1 |
+| 0 | 0 | 0 | 0 | 1 | 0 | x+y |
+| 0 | 1 | 0 | 0 | 1 | 1 | x-y |
+| 0 | 0 | 0 | 1 | 1 | 1 | y-x |
+| 0 | 0 | 0 | 0 | 0 | 0 | x AND y |
+| 0 | 1 | 0 | 1 | 0 | 1 | x OR y |
 
 ### ALU Internal Flow
 
@@ -202,7 +210,6 @@ Two flags come out alongside the result:
 
 These drive the jump logic in the CPU.
 
----
 
 ## Phase 4: Memory
 
@@ -210,7 +217,7 @@ These drive the jump logic in the CPU.
 
 | Chip | Notes |
 |------|-------|
-| `DFF` | Hardware primitive — the only element that stores state across time |
+| `DFF` | Hardware primitive, this chip stores state across time |
 | `Bit` | Mux + DFF: loads new value when `load=1`, otherwise holds current |
 | `Register` | 16 × Bit in parallel |
 
@@ -226,7 +233,7 @@ The `Bit` chip design is worth noting: a Mux sits in front of the DFF, controlle
 | `RAM4K` | 4096 registers |
 | `RAM16K` | 16384 registers |
 
-Each level uses the **top bits** of the address to select a sub-block via DMux/Mux, and passes the **remaining bits** down as the address within that sub-block. The same pattern repeats at every level.
+Each level uses the **top bits** of the address to select a sub block via DMux/Mux, and passes the **remaining bits** down as the address within that sub block. The same pattern repeats at every level.
 
 ### Program Counter (PC)
 
@@ -238,17 +245,16 @@ A register with three behaviors, evaluated in this priority order:
 
 Built from a Register, Inc16, and mux logic.
 
----
 
 ## Phase 5: The CPU
 
 Five components wired together:
 
-- **A Register** — addresses and constants
-- **D Register** — data
-- **ALU** — all computation
-- **Program Counter** — next instruction address
-- **Decoder** — just wires
+- **A Register** : addresses and variables
+- **D Register** : data
+- **ALU** : all computation
+- **Program Counter** : next instruction address
+- **Decoder** : just direction connections
 
 ### CPU Architecture
 
@@ -303,7 +309,7 @@ There is no decode unit. Bits route directly to what they control:
 - `[3]` → write ALU result to Memory (`writeM`)
 - `[2..0]` → jump condition bits
 
-Every C-instruction signal is AND-gated with `instruction[15]`. During an A-instruction, all those lines are forced to 0 — only the A register loads.
+Every C-instruction signal is AND-gated with `instruction[15]`. During an A-instruction, all those lines are forced to 0 and only the A register loads.
 
 ### A Register
 
@@ -311,13 +317,9 @@ Takes input from two sources selected by a Mux16:
 - The raw instruction value (A-instruction)
 - The ALU output (C-instruction with d1=1)
 
-```text
-loadA = NOT(instruction[15])  OR  (instruction[15] AND instruction[5])
-```
-
 Outputs:
-- `addressM` — the data memory address bus
-- `aOut` — fed to the ALU Mux and PC
+- `addressM` : the data memory address bus
+- `aOut` : fed to the ALU Mux and PC
 
 ### D Register
 
@@ -354,8 +356,6 @@ The positive condition is derived since the ALU doesn't output it directly. The 
 ---
 
 ## Phase 6: The Full Computer
-
-Three chips. Six signals. One reset line.
 
 ```mermaid
 flowchart LR
@@ -409,28 +409,26 @@ Writing into the screen range updates pixels. Reading `0x6000` returns the curre
 
 Each clock cycle does this in one pass:
 
-1. **Fetch** — PC address goes to ROM, instruction comes back
-2. **Decode** — bits route to their control lines
-3. **Execute** — ALU computes, Mux picks A or Memory as second input
-4. **Store** — result goes to whichever dest bits are set
-5. **Jump** — jump logic checks flags against jump bits
-6. **Commit** — clock edge latches all registers, PC updates
+1. **Fetch** : PC address goes to ROM, instruction comes back
+2. **Decode** : bits route to their control lines
+3. **Execute** : ALU computes, Mux picks A or Memory as second input
+4. **Store** : result goes to whichever dest bits are set
+5. **Jump** : jump logic checks flags against jump bits
+6. **Commit** : clock edge latches all registers, PC updates
 
 Steps 1–5 are combinational. Step 6 is sequential.
-
----
 
 ## Timing Model
 
 ### Combinational (no clock needed)
 
-- **`outM`** — direct ALU output
-- **`writeM`** — `instruction[15] AND instruction[3]`
+- **`outM`** : direct ALU output
+- **`writeM`** : `instruction[15] AND instruction[3]`
 
 ### Sequential (clock edge)
 
-- **`addressM`** — A register output
-- **`pc`** — Program Counter output
+- **`addressM`** : A register output
+- **`pc`** : Program Counter output
 
 ## Complete Flow
 
